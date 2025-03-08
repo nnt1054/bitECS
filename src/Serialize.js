@@ -34,7 +34,7 @@ const fromModifierToComponent = c => c()[0]
 
 export const canonicalize = target => {
 
-  if (isWorld(target)) return [[],new Map()]
+  if (isWorld(target)) return [[],new Map(), [], []]
 
   // aggregate full components
   const fullComponentProps = target
