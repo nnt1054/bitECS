@@ -318,7 +318,7 @@ var isWorld = (w) => Object.getOwnPropertySymbols(w).includes($componentMap);
 var fromModifierToComponent = (c) => c()[0];
 var canonicalize = (target) => {
   if (isWorld(target))
-    return [[], /* @__PURE__ */ new Map()];
+    return [[], /* @__PURE__ */ new Map(), [], []];
   const fullComponentProps = target.filter(isNotModifier).filter(isFullComponent).map(storeFlattened).reduce(concat, []);
   const changedComponentProps = target.filter(isChangedModifier).map(fromModifierToComponent).filter(isFullComponent).map(storeFlattened).reduce(concat, []);
   const props = target.filter(isNotModifier).filter(isProperty);
