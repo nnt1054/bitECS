@@ -58,7 +58,7 @@ export const canonicalize = target => {
     .filter(isChangedModifier).map(fromModifierToComponent)
     .filter(isProperty)
 
-  // aggregate changed props
+  // aggregate dirty props
   const dirtyProps = target
     .filter(isDirtyModifier).map(fromModifierToComponent)
     .filter(isProperty)
@@ -135,8 +135,9 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
     if (!ents.length) return buffer.slice(0, where)
 
-    // iterate over dirty props and find eids with a changed dirty prop
     const dirtyCache = new Map();
+
+    // iterate over dirty props; store dirty eids for components with at least one dirty prop
     for (let pid = 0; pid < dirtyProps.length; pid++) {
       const prop = dirtyProps[pid]
       const component = prop[$storeBase]()
@@ -155,7 +156,9 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
         if (!ArrayBuffer.isView(prop[eid])) {
           if (shadow) {
             const changed = shadow[eid] !== prop[eid]
-            dirtyCache.get(component).set(eid, changed);
+            if (changed) {
+              dirtyCache.get(component).set(eid, changed);
+            }
           }
         }
       }
@@ -213,6 +216,8 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
         const isDirty = dirtyCache.get(component)?.get(eid);
         if (!isDirty && dirtyComponentProps.includes(prop)) {
+          // skip if not dirty and property is only included because component
+          // has at least one dirty prop
           continue;
         }
 
@@ -250,7 +255,7 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
               // sync shadow
               shadow[eid][i] = prop[eid][i]              
 
-              // if state has not changed since the last call
+              // if state has not changed since the last call and not dirty
               // todo: if newly added then entire component will serialize (instead of only changed values)
               if (!changed && !newlyAddedComponent && !isDirty) {
                 // skip writing this value
@@ -285,7 +290,7 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
             shadow[eid] = prop[eid]
 
-            // do not write value if diffing and no change
+            // do not write value if diffing and no change and not dirty
             if (!changed && !newlyAddedComponent && !isDirty) {
               // rewind the serializer
               where = rewindWhere

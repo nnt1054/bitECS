@@ -1,3 +1,32 @@
+## ✨ What's in this Fork?
+
+Added a `Dirty` modifier for serialization.  If an Entity has a Component with at least one changed Dirty property since the last serialization call, then all properties for that Component for that Entity will be serialized.
+
+```js
+const ComponentA = defineComponent({
+  dirtyFlag: Types.f32,
+  x: Types.f32,
+  y: Types.f32,
+  z: Types.f32,
+})
+
+const dirtySerializer = defineSerializer([Dirty(ComponentA.dirtyFlag)])
+let packet = dirtySerializer(world)
+
+ComponentA.x[eid]++
+
+// not watching changes to ComponentA.x so the packet is empty
+packet = dirtySerializer(world)
+console.log(packet.byteLength) // => 0
+
+ComponentA.dirtyFlag[eid]++
+
+// since dirtyFlag has changed, serialize all Component props for eid
+packet = dirtySerializer(world)
+console.log(packet.byteLength) // => 52
+```
+
+
 :warning: [v0.4](https://github.com/NateTheGreatt/bitECS/blob/rc-0-4-0) coming soon! Read the [docs here](https://github.com/NateTheGreatt/bitECS/blob/rc-0-4-0/docs/Intro.md)
 
 
