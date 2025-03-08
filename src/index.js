@@ -2,7 +2,7 @@ import { createWorld, resetWorld, deleteWorld, getWorldComponents, getAllEntitie
 import { addEntity, removeEntity, setDefaultSize, setRemovedRecycleThreshold, getEntityComponents, entityExists, flushRemovedEntities, resetGlobals } from './Entity.js'
 import { defineComponent, registerComponent, registerComponents, hasComponent, addComponent, removeComponent } from './Component.js'
 import { defineSystem } from './System.js'
-import { defineQuery, enterQuery, exitQuery, Changed, Not, commitRemovals, resetChangedQuery, removeQuery } from './Query.js'
+import { defineQuery, enterQuery, exitQuery, Changed, Dirty, Not, commitRemovals, resetChangedQuery, removeQuery } from './Query.js'
 import { defineSerializer, defineDeserializer, DESERIALIZE_MODE } from './Serialize.js'
 import { parentArray } from './Storage.js'
 import { TYPES_ENUM } from './Constants.js'
@@ -43,6 +43,7 @@ export {
 
   defineQuery,
   Changed,
+  Dirty,
   Not,
   enterQuery,
   exitQuery,

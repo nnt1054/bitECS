@@ -14,6 +14,7 @@ function modifier(c, mod) {
 export const Not = (c) => modifier(c, 'not')
 export const Or = (c) => modifier(c, 'or')
 export const Changed = (c) => modifier(c, 'changed')
+export const Dirty = (c) => modifier(c, 'dirty')
 
 export function Any(...comps) { return function QueryAny() { return comps } }
 export function All(...comps) { return function QueryAll() { return comps } }

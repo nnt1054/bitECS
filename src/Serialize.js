@@ -26,6 +26,7 @@ const isModifier = c => typeof c === "function" && c[$modifier]
 const isNotModifier = not(isModifier)
 
 const isChangedModifier = c => isModifier(c) && c()[1] === 'changed'
+const isDirtyModifier = c => isModifier(c) && c()[1] === 'dirty'
 
 const isWorld = w => Object.getOwnPropertySymbols(w).includes($componentMap)
 
@@ -56,16 +57,35 @@ export const canonicalize = target => {
   const changedProps = target
     .filter(isChangedModifier).map(fromModifierToComponent)
     .filter(isProperty)
-  
-  const componentProps = [...fullComponentProps, ...props, ...changedComponentProps, ...changedProps]
-  const allChangedProps = [...changedComponentProps, ...changedProps].reduce((map,prop) => {
+
+  // aggregate changed props
+  const dirtyProps = target
+    .filter(isDirtyModifier).map(fromModifierToComponent)
+    .filter(isProperty)
+
+  // retrieve all component props for components with a dirty prop
+  const dirtyComponentProps = dirtyProps
+    .map(prop => prop[$storeBase]())
+    .map(storeFlattened)
+    .reduce(concat, [])
+    .filter(prop => !dirtyProps.includes(prop))
+
+  const componentProps = [
+    ...fullComponentProps, ...props,
+    ...changedComponentProps, ...changedProps,
+    ...dirtyComponentProps, ...dirtyProps,
+  ]
+
+  const allChangedProps = [
+      ...changedComponentProps, ...changedProps, ...dirtyProps
+  ].reduce((map,prop) => {
     const $ = Symbol()
     createShadow(prop, $)
     map.set(prop, $)
     return map
   }, new Map())
 
-  return [componentProps, allChangedProps]
+  return [componentProps, allChangedProps, dirtyProps, dirtyComponentProps]
 }
 
 /**
@@ -78,7 +98,7 @@ export const canonicalize = target => {
 export const defineSerializer = (target, maxBytes = 20000000) => {
   const worldSerializer = isWorld(target)
 
-  let [componentProps, changedProps] = canonicalize(target)
+  let [componentProps, changedProps, dirtyProps, dirtyComponentProps] = canonicalize(target)
 
   // TODO: calculate max bytes based on target & recalc upon resize
 
@@ -90,7 +110,7 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
   return (ents) => {
 
     if (resized) {
-      [componentProps, changedProps] = canonicalize(target)
+      [componentProps, changedProps, dirtyProps, dirtyComponentProps] = canonicalize(target)
       resized = false
     }
 
@@ -114,6 +134,32 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
     let where = 0
 
     if (!ents.length) return buffer.slice(0, where)
+
+    // iterate over dirty props and find eids with a changed dirty prop
+    const dirtyCache = new Map();
+    for (let pid = 0; pid < dirtyProps.length; pid++) {
+      const prop = dirtyProps[pid]
+      const component = prop[$storeBase]()
+      const $diff = changedProps.get(prop)
+      const shadow = $diff ? prop[$diff] : null
+
+      if (!dirtyCache.has(component)) dirtyCache.set(component, new Map())
+
+      for (let i = 0; i < ents.length; i++) {
+        const eid = ents[i];
+        if (!hasComponent(world, component, eid)) {
+          continue;
+        }
+
+        // todo: allow dirty modifier on array properties
+        if (!ArrayBuffer.isView(prop[eid])) {
+          if (shadow) {
+            const changed = shadow[eid] !== prop[eid]
+            dirtyCache.get(component).set(eid, changed);
+          }
+        }
+      }
+    }
 
     const cache = new Map()
 
@@ -163,9 +209,13 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
           // skip if entity doesn't have this component
           componentCache.delete(component)
           continue
-        } 
+        }
 
-        
+        const isDirty = dirtyCache.get(component)?.get(eid);
+        if (!isDirty && dirtyComponentProps.includes(prop)) {
+          continue;
+        }
+
         const rewindWhere = where
 
         // write eid
@@ -202,7 +252,7 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
               // if state has not changed since the last call
               // todo: if newly added then entire component will serialize (instead of only changed values)
-              if (!changed && !newlyAddedComponent) {
+              if (!changed && !newlyAddedComponent && !isDirty) {
                 // skip writing this value
                 continue
               }
@@ -236,7 +286,7 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
             shadow[eid] = prop[eid]
 
             // do not write value if diffing and no change
-            if (!changed && !newlyAddedComponent) {
+            if (!changed && !newlyAddedComponent && !isDirty) {
               // rewind the serializer
               where = rewindWhere
               // skip writing this value
