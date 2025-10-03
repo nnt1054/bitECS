@@ -316,7 +316,7 @@ var isChangedModifier = (c) => isModifier(c) && c()[1] === "changed";
 var isDirtyModifier = (c) => isModifier(c) && c()[1] === "dirty";
 var isWorld = (w) => Object.getOwnPropertySymbols(w).includes($componentMap);
 var fromModifierToComponent = (c) => c()[0];
-var canonicalize = (target) => {
+var canonicalize = (target, createShadows = true) => {
   if (isWorld(target))
     return [[], /* @__PURE__ */ new Map(), [], []];
   const fullComponentProps = target.filter(isNotModifier).filter(isFullComponent).map(storeFlattened).reduce(concat, []);
@@ -333,7 +333,7 @@ var canonicalize = (target) => {
     ...dirtyComponentProps,
     ...dirtyProps
   ];
-  const allChangedProps = [
+  const allChangedProps = createShadows ? [
     ...changedComponentProps,
     ...changedProps,
     ...dirtyProps
@@ -342,7 +342,7 @@ var canonicalize = (target) => {
     createShadow(prop, $);
     map.set(prop, $);
     return map;
-  }, /* @__PURE__ */ new Map());
+  }, /* @__PURE__ */ new Map()) : /* @__PURE__ */ new Map();
   return [componentProps, allChangedProps, dirtyProps, dirtyComponentProps];
 };
 var defineSerializer = (target, maxBytes = 2e7) => {
@@ -501,12 +501,12 @@ var defineSerializer = (target, maxBytes = 2e7) => {
 var newEntities = /* @__PURE__ */ new Map();
 var defineDeserializer = (target) => {
   const isWorld2 = Object.getOwnPropertySymbols(target).includes($componentMap);
-  let [componentProps] = canonicalize(target);
+  let [componentProps] = canonicalize(target, false);
   const deserializedEntities = /* @__PURE__ */ new Set();
   return (world, packet, mode = 0) => {
     newEntities.clear();
     if (resized) {
-      [componentProps] = canonicalize(target);
+      [componentProps] = canonicalize(target, false);
       resized = false;
     }
     if (isWorld2) {
