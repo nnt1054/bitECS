@@ -111,6 +111,13 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
   return (ents, clearShadows = false) => {
 
+    if (clearShadows) {
+      for (const [prop, $] of changedProps) {
+        delete prop[$]
+      }
+      return;
+    }
+
     if (resized) {
       for (const [prop, $] of changedProps) {
         delete prop[$]
@@ -323,12 +330,6 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
         // if nothing was written (diffed with no changes) 
         // then move cursor back 5 bytes (remove PID and countWhere space)
         where -= 5
-      }
-    }
-
-    if (clearShadows) {
-      for (const [prop, $] of changedProps) {
-        delete prop[$]
       }
     }
 
