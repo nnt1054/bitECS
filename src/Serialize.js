@@ -107,9 +107,13 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
   const entityComponentCache = new Map()
 
-  return (ents) => {
+  return (ents, clearShadows = false) => {
 
     if (resized) {
+      for (const [prop, $] of changedProps) {
+        delete prop[$]
+      }
+
       [componentProps, changedProps, dirtyProps, dirtyComponentProps] = canonicalize(target)
       resized = false
     }
@@ -319,6 +323,13 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
         where -= 5
       }
     }
+
+    if (clearShadows) {
+      for (const [prop, $] of changedProps) {
+        delete prop[$]
+      }
+    }
+
     return buffer.slice(0, where)
   }
 }
