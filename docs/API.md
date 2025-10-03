@@ -170,7 +170,8 @@ This should be set to as a % (0-1) of <code>defaultSize</code> that you would ne
 <br><a name="setRemovedRecycleThreshold"></a>
 
 ## setRemovedRecycleThreshold
-> Sets the number of entities that must be removed before removed entity ids begin to be recycled.> This should be set to as a % (0-1) of `defaultSize` that you would never likely remove/add on a single frame.
+> Sets the number of entities that must be removed before removed entity ids begin to be recycled.
+> This should be set to as a % (0-1) of `defaultSize` that you would never likely remove/add on a single frame.
 
 
 | Param | Type |

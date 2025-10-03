@@ -287,8 +287,11 @@ var defineSerializer = (target, maxBytes = 2e7) => {
   const buffer = new ArrayBuffer(maxBytes);
   const view = new DataView(buffer);
   const entityComponentCache = /* @__PURE__ */ new Map();
-  return (ents) => {
+  return (ents, clearShadows = false) => {
     if (resized) {
+      for (const [prop, $] of changedProps) {
+        delete prop[$];
+      }
       [componentProps, changedProps, dirtyProps, dirtyComponentProps] = canonicalize(target);
       resized = false;
     }
@@ -420,6 +423,11 @@ var defineSerializer = (target, maxBytes = 2e7) => {
         view.setUint32(countWhere, writeCount);
       } else {
         where -= 5;
+      }
+    }
+    if (clearShadows) {
+      for (const [prop, $] of changedProps) {
+        delete prop[$];
       }
     }
     return buffer.slice(0, where);
