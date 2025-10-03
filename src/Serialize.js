@@ -32,7 +32,7 @@ const isWorld = w => Object.getOwnPropertySymbols(w).includes($componentMap)
 
 const fromModifierToComponent = c => c()[0]
 
-export const canonicalize = target => {
+export const canonicalize = (target, createShadows = true) => {
 
   if (isWorld(target)) return [[],new Map(), [], []]
 
@@ -76,14 +76,16 @@ export const canonicalize = target => {
     ...dirtyComponentProps, ...dirtyProps,
   ]
 
-  const allChangedProps = [
-      ...changedComponentProps, ...changedProps, ...dirtyProps
-  ].reduce((map,prop) => {
-    const $ = Symbol()
-    createShadow(prop, $)
-    map.set(prop, $)
-    return map
-  }, new Map())
+  const allChangedProps = createShadows
+    ? [
+          ...changedComponentProps, ...changedProps, ...dirtyProps
+      ].reduce((map,prop) => {
+        const $ = Symbol()
+        createShadow(prop, $)
+        map.set(prop, $)
+        return map
+      }, new Map())
+    : new Map();
 
   return [componentProps, allChangedProps, dirtyProps, dirtyComponentProps]
 }
@@ -137,15 +139,7 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
     let where = 0
 
-    if (!ents.length) {
-      if (clearShadows) {
-        for (const [prop, $] of changedProps) {
-          delete prop[$]
-        }
-      }
-
-      return buffer.slice(0, where)
-    }
+    if (!ents.length) return buffer.slice(0, where)
 
     const dirtyCache = new Map();
 
@@ -332,6 +326,12 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
       }
     }
 
+    if (clearShadows) {
+      for (const [prop, $] of changedProps) {
+        delete prop[$]
+      }
+    }
+
     return buffer.slice(0, where)
   }
 }
@@ -346,7 +346,7 @@ const newEntities = new Map()
  */
 export const defineDeserializer = (target) => {
   const isWorld = Object.getOwnPropertySymbols(target).includes($componentMap)
-  let [componentProps] = canonicalize(target)
+  let [componentProps] = canonicalize(target, false)
 
   const deserializedEntities = new Set()
 
@@ -355,7 +355,7 @@ export const defineDeserializer = (target) => {
     newEntities.clear()
     
     if (resized) {
-      [componentProps] = canonicalize(target)
+      [componentProps] = canonicalize(target, false)
       resized = false
     }
 
