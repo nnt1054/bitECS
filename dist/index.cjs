@@ -376,8 +376,14 @@ var defineSerializer = (target, maxBytes = 2e7) => {
       world = eidToWorld.get(ents[0]);
     }
     let where = 0;
-    if (!ents.length)
+    if (!ents.length) {
+      if (clearShadows) {
+        for (const [prop, $] of changedProps) {
+          delete prop[$];
+        }
+      }
       return buffer.slice(0, where);
+    }
     const dirtyCache = /* @__PURE__ */ new Map();
     for (let pid = 0; pid < dirtyProps.length; pid++) {
       const prop = dirtyProps[pid];
@@ -487,11 +493,6 @@ var defineSerializer = (target, maxBytes = 2e7) => {
         view.setUint32(countWhere, writeCount);
       } else {
         where -= 5;
-      }
-    }
-    if (clearShadows) {
-      for (const [prop, $] of changedProps) {
-        delete prop[$];
       }
     }
     return buffer.slice(0, where);
