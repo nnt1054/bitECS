@@ -137,7 +137,15 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
 
     let where = 0
 
-    if (!ents.length) return buffer.slice(0, where)
+    if (!ents.length) {
+      if (clearShadows) {
+        for (const [prop, $] of changedProps) {
+          delete prop[$]
+        }
+      }
+
+      return buffer.slice(0, where)
+    }
 
     const dirtyCache = new Map();
 
@@ -321,12 +329,6 @@ export const defineSerializer = (target, maxBytes = 20000000) => {
         // if nothing was written (diffed with no changes) 
         // then move cursor back 5 bytes (remove PID and countWhere space)
         where -= 5
-      }
-    }
-
-    if (clearShadows) {
-      for (const [prop, $] of changedProps) {
-        delete prop[$]
       }
     }
 
